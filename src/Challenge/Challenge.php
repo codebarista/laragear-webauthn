@@ -2,7 +2,7 @@
 
 namespace Laragear\WebAuthn\Challenge;
 
-use Illuminate\Support\Carbon;
+use DateTimeInterface;
 use Illuminate\Support\Facades\Date;
 use Laragear\WebAuthn\ByteBuffer;
 
@@ -22,9 +22,9 @@ class Challenge
     }
 
     /**
-     * Returns the expiration time as a Carbon instance.
+     * Returns the expiration time as a DateTime interface instance.
      */
-    public function expiresAt(): Carbon
+    public function expiresAt(): DateTimeInterface
     {
         return Date::createFromTimestamp($this->expiresAt);
     }
