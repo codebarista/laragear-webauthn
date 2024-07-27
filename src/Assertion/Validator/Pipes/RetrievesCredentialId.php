@@ -6,7 +6,6 @@ use Closure;
 use Laragear\WebAuthn\Assertion\Validator\AssertionValidation;
 use Laragear\WebAuthn\Exceptions\AssertionException;
 use Laragear\WebAuthn\Models\WebAuthnCredential;
-
 use function in_array;
 
 /**
@@ -30,13 +29,13 @@ class RetrievesCredentialId
         }
 
         // We can now find the credential.
-        $validation->credential = WebAuthnCredential::whereKey($id)->first();
+        $validation->credential = WebAuthnCredential::whereKey($id)->first(); // @phpstan-ignore-line
 
         if (! $validation->credential) {
             throw AssertionException::make('Credential ID does not exist.');
         }
 
-        if ($validation->credential->isDisabled()) {
+        if ($validation->credential->isDisabled()) { // @phpstan-ignore-line
             throw AssertionException::make('Credential ID is blacklisted.');
         }
 

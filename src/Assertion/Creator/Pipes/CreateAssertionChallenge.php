@@ -36,7 +36,7 @@ class CreateAssertionChallenge
 
         if ($assertion->acceptedCredentials?->isNotEmpty()) {
             $assertion->challenge->properties['credentials'] = $assertion->acceptedCredentials
-                ->map(static function (WebAuthnCredential $credential): string { // @phpstan-ignore-line
+                ->map(static function (WebAuthnCredential $credential): string {
                     return $credential->getKey();
                 })->toArray();
         }
