@@ -5,6 +5,7 @@ namespace Laragear\WebAuthn\Assertion\Validator\Pipes;
 use Closure;
 use Laragear\WebAuthn\Assertion\Validator\AssertionValidation;
 use Laragear\WebAuthn\Exceptions\AssertionException;
+use Ramsey\Uuid\Exception\InvalidUuidStringException;
 use Ramsey\Uuid\Uuid;
 
 use function hash_equals;
@@ -62,9 +63,16 @@ class CheckCredentialIsForUser
      */
     protected function validateId(AssertionValidation $validation): void
     {
-        $handle = $validation->json->get('response.userHandle');
+        // This try-catch block tries to decode the UUID from the "userHandle" response
+        // of the authenticator, which is pushed from the application to be saved. If
+        // the userHandle cannot be decoded and normalized, then surely is invalid.
+        try {
+            $handle = Uuid::fromString($validation->json->get('response.userHandle'))->getHex()->toString();
+        } catch (InvalidUuidStringException) {
+            throw AssertionException::make('The userHandle is not a valid hexadecimal UUID (32/36 characters).');
+        }
 
-        if (! $handle || ! hash_equals(Uuid::fromString($validation->credential->user_id)->getHex()->toString(), $handle)) {
+        if (! hash_equals(Uuid::fromString($validation->credential->user_id)->getHex()->toString(), $handle)) {
             throw AssertionException::make('User ID is not owner of the stored credential.');
         }
     }

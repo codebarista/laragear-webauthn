@@ -258,7 +258,25 @@ class ValidationTest extends DatabaseTestCase
         $this->validate();
     }
 
-    public function test_credential_check_if_not_for_user_id(): void
+    public function test_credential_check_is_malformed_user_handle(): void
+    {
+        $assertionResponse = FakeAuthenticator::assertionResponse();
+
+        $assertionResponse['response']['userHandle'] = 'ggggggggggggggggggggggggggggggg';
+
+        $this->validation->json = new JsonTransport($assertionResponse);
+
+        $this->validation->user = WebAuthnAuthenticatableUser::query()->first();
+
+        $this->expectException(AssertionException::class);
+        $this->expectExceptionMessage(
+            'Assertion Error: The userHandle is not a valid hexadecimal UUID (32/36 characters).'
+        );
+
+        $this->validator->send($this->validation)->thenReturn();
+    }
+
+    public function test_credential_check_is_not_for_user_id(): void
     {
         DB::table('webauthn_credentials')->where('id', FakeAuthenticator::CREDENTIAL_ID)->update([
             'user_id' => '4bde1e58dba94de4ab307f46611165cb',
