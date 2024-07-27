@@ -9,9 +9,7 @@ use Laragear\MetaModel\CustomizableModel;
 use Laragear\WebAuthn\Events\CredentialDisabled;
 use Laragear\WebAuthn\Events\CredentialEnabled;
 use Laragear\WebAuthn\Migrations\WebAuthnAuthenticationMigration;
-
 use function parse_url;
-
 use const PHP_URL_HOST;
 
 /**
@@ -19,20 +17,20 @@ use const PHP_URL_HOST;
  *
  * @method \Illuminate\Database\Eloquent\Builder|\static newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder|\static query()
- * @method static \static make(array $attributes = [])
- * @method static \static create(array $attributes = [])
- * @method static \static forceCreate(array $attributes)
- * @method static \static forceCreateQuietly(array $attributes = [])
- * @method \static|null first($columns = ['*'], string ...$columns)
- * @method \static firstOrNew(array $attributes = [], array $values = [])
- * @method \static firstOrFail($columns = ['*'])
- * @method \static firstOrCreate(array $attributes, array $values = [])
- * @method \static firstOr($columns = ['*'], \Closure $callback = null)
- * @method \static firstWhere($column, $operator = null, $value = null, $boolean = 'and')
- * @method \static updateOrCreate(array $attributes, array $values = [])
- * @method \static createOrFirst(array $attributes, array $values = [])
- * @method \static sole($columns = ['*'])
- * @method \static findOrNew($id, $columns = ['*'])
+ * @method static \Laragear\WebAuthn\Models\WebAuthnCredential make(array $attributes = [])
+ * @method static \Laragear\WebAuthn\Models\WebAuthnCredential create(array $attributes = [])
+ * @method static \Laragear\WebAuthn\Models\WebAuthnCredential forceCreate(array $attributes)
+ * @method static \Laragear\WebAuthn\Models\WebAuthnCredential forceCreateQuietly(array $attributes = [])
+ * @method \Laragear\WebAuthn\Models\WebAuthnCredential|null first($columns = ['*'], string ...$columns)
+ * @method \Laragear\WebAuthn\Models\WebAuthnCredential firstOrNew(array $attributes = [], array $values = [])
+ * @method \Laragear\WebAuthn\Models\WebAuthnCredential firstOrFail($columns = ['*'])
+ * @method \Laragear\WebAuthn\Models\WebAuthnCredential firstOrCreate(array $attributes, array $values = [])
+ * @method \Laragear\WebAuthn\Models\WebAuthnCredential firstOr($columns = ['*'], \Closure $callback = null)
+ * @method \Laragear\WebAuthn\Models\WebAuthnCredential firstWhere($column, $operator = null, $value = null, $boolean = 'and')
+ * @method \Laragear\WebAuthn\Models\WebAuthnCredential updateOrCreate(array $attributes, array $values = [])
+ * @method \Laragear\WebAuthn\Models\WebAuthnCredential createOrFirst(array $attributes, array $values = [])
+ * @method \Laragear\WebAuthn\Models\WebAuthnCredential sole($columns = ['*'])
+ * @method \Laragear\WebAuthn\Models\WebAuthnCredential findOrNew($id, $columns = ['*'])
  * @method \Illuminate\Database\Eloquent\Collection<int, \static>|\static[]|\static|null find($id, $columns = ['*'])
  * @method \Illuminate\Database\Eloquent\Collection<int, \static>|\static[]|\static findOrFail($id, $columns = ['*'])
  * @method \Illuminate\Database\Eloquent\Collection<int, \static>|\static[]|\static findOr($id, $columns = ['*'], \Closure $callback = null)
