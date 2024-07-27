@@ -26,7 +26,7 @@ use Laragear\WebAuthn\JsonTransport;
 use Laragear\WebAuthn\Models\WebAuthnCredential;
 use Mockery;
 use Ramsey\Uuid\Uuid;
-use Symfony\Component\HttpFoundation\ParameterBag;
+use Symfony\Component\HttpFoundation\InputBag;
 use Tests\DatabaseTestCase;
 use Tests\FakeAuthenticator;
 use Tests\Stubs\WebAuthnAuthenticatableUser;
@@ -107,7 +107,7 @@ class ValidationTest extends DatabaseTestCase
     {
         $request = Request::create('/');
         $request->headers->set('content-type', 'application/json');
-        $request->setJson(new ParameterBag([
+        $request->setJson(new InputBag([
             ...FakeAuthenticator::attestationResponse(),
             'foo' => 'bar',
             'clientExtensionResults' => 'baz',
@@ -476,6 +476,66 @@ class ValidationTest extends DatabaseTestCase
         $this->validate();
     }
 
+    public function test_check_origin_matches_non_url(): void
+    {
+        $this->app->make('config')->set('webauthn.origins', ['foo', 'bar.baz']);
+
+        $invalid = FakeAuthenticator::attestationResponse();
+
+        $invalid['response']['clientDataJSON'] = base64_encode(
+            json_encode([
+                'type' => 'webauthn.create',
+                'origin' => 'foo',
+                'challenge' => FakeAuthenticator::ATTESTATION_CHALLENGE,
+            ])
+        );
+
+        $this->validation->json = new JsonTransport($invalid);
+
+        static::assertInstanceOf(AttestationValidation::class, $this->validator->send($this->validation)->thenReturn());
+    }
+
+    public function test_check_origin_matches_non_url_from_string(): void
+    {
+        $this->app->make('config')->set('webauthn.origins', 'foo,bar.baz');
+
+        $invalid = FakeAuthenticator::attestationResponse();
+
+        $invalid['response']['clientDataJSON'] = base64_encode(
+            json_encode([
+                'type' => 'webauthn.create',
+                'origin' => 'foo',
+                'challenge' => FakeAuthenticator::ATTESTATION_CHALLENGE,
+            ])
+        );
+
+        $this->validation->json = new JsonTransport($invalid);
+
+        static::assertInstanceOf(AttestationValidation::class, $this->validator->send($this->validation)->thenReturn());
+    }
+
+    public function test_check_origin_doesnt_match_subdomain_from_non_origin_url(): void
+    {
+        $this->app->make('config')->set('webauthn.origins', 'foo,bar.baz');
+
+        $invalid = FakeAuthenticator::attestationResponse();
+
+        $invalid['response']['clientDataJSON'] = base64_encode(
+            json_encode([
+                'type' => 'webauthn.create',
+                'origin' => 'bar.foo',
+                'challenge' => FakeAuthenticator::ATTESTATION_CHALLENGE,
+            ])
+        );
+
+        $this->validation->json = new JsonTransport($invalid);
+
+        $this->expectException(AttestationException::class);
+        $this->expectExceptionMessage('Attestation Error: Response origin not allowed for this app.');
+
+        $this->validate();
+    }
+
     public function test_check_origin_fails_if_empty(): void
     {
         $invalid = FakeAuthenticator::attestationResponse();
@@ -508,7 +568,7 @@ class ValidationTest extends DatabaseTestCase
         $this->validation->json = new JsonTransport($invalid);
 
         $this->expectException(AttestationException::class);
-        $this->expectExceptionMessage('Attestation Error: Response origin is invalid.');
+        $this->expectExceptionMessage('Attestation Error: Response origin not allowed for this app.');
 
         $this->validate();
     }
@@ -527,7 +587,9 @@ class ValidationTest extends DatabaseTestCase
         $this->validation->json = new JsonTransport($invalid);
 
         $this->expectException(AttestationException::class);
-        $this->expectExceptionMessage('Attestation Error: Response not made to a secure server (localhost or HTTPS).');
+        $this->expectExceptionMessage(
+            'Attestation Error: Response origin not made from a secure server (localhost or HTTPS).'
+        );
 
         $this->validate();
     }
@@ -567,7 +629,7 @@ class ValidationTest extends DatabaseTestCase
         $this->validation->json = new JsonTransport($invalid);
 
         $this->expectException(AttestationException::class);
-        $this->expectExceptionMessage('Attestation Error: Relying Party ID not scoped to current.');
+        $this->expectExceptionMessage('Attestation Error: Response origin not allowed for this app.');
 
         $this->validate();
     }
@@ -587,9 +649,43 @@ class ValidationTest extends DatabaseTestCase
         $this->validation->json = new JsonTransport($invalid);
 
         $this->expectException(AttestationException::class);
-        $this->expectExceptionMessage('Attestation Error: Relying Party ID not scoped to current.');
+        $this->expectExceptionMessage('Attestation Error: Response origin not allowed for this app.');
 
         $this->validate();
+    }
+
+    public function test_rp_id_passes_if_subdomain(): void
+    {
+        $invalid = FakeAuthenticator::attestationResponse();
+
+        $invalid['response']['clientDataJSON'] = base64_encode(
+            json_encode([
+                'type' => 'webauthn.create',
+                'origin' => 'https://valid.localhost:9780',
+                'challenge' => FakeAuthenticator::ATTESTATION_CHALLENGE,
+            ])
+        );
+
+        $this->validation->json = new JsonTransport($invalid);
+
+        static::assertInstanceOf(AttestationValidation::class, $this->validator->send($this->validation)->thenReturn());
+    }
+
+    public function test_rp_id_passes_if_unsecure_subdomain_of_localhost(): void
+    {
+        $invalid = FakeAuthenticator::attestationResponse();
+
+        $invalid['response']['clientDataJSON'] = base64_encode(
+            json_encode([
+                'type' => 'webauthn.create',
+                'origin' => 'http://valid.localhost:9780',
+                'challenge' => FakeAuthenticator::ATTESTATION_CHALLENGE,
+            ])
+        );
+
+        $this->validation->json = new JsonTransport($invalid);
+
+        static::assertInstanceOf(AttestationValidation::class, $this->validator->send($this->validation)->thenReturn());
     }
 
     public function test_rp_id_fails_if_hash_not_same(): void

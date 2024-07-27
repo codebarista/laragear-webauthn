@@ -661,6 +661,16 @@ class AppServiceProvider extends ServiceProvider
 }
 ```
 
+## Origins
+
+If you have an [Android app](https://developer.android.com/identity/sign-in/credential-manager?hl=en#verify-origin), or any other remote frontends, software or interfaces outside your app server to handle credentials on behalf of your app, you may need to add these as valid origins. These are additional to your main Relying Party ID, which is your app domain.
+
+Simply add these origins as part of the `WEBAUTHN_ORIGINS` environment variable. If you have more than one, you can separate them using a comma.
+
+```dotenv
+WEBAUTHN_ORIGINS=mirror-myapp.com,android:apk-key-hash:kffL-daBUxvHpY-4M8yhTavt5QnFEI2LsexohxrGPYU
+```
+
 ## Advanced Configuration
 
 Laragear WebAuthn was made to work out-of-the-box, but you can override the configuration by simply publishing the config file.
@@ -679,6 +689,7 @@ return [
         'name' => env('WEBAUTHN_NAME', env('APP_NAME')),
         'id'   => env('WEBAUTHN_ID'),
     ],
+    'origins' => env('WEBAUTHN_ORIGINS'),
     'challenge' => [
         'bytes' => 16,
         'timeout' => 60,
@@ -713,6 +724,16 @@ Instead of modifying the config file, you should use the environment variables t
 WEBAUTHN_NAME=SecureBank
 WEBAUTHN_ID=auth.securebank.com
 ```
+
+### Origins
+
+```php
+return [
+    'origins' => env('WEBAUTHN_ORIGINS'),
+];
+```
+
+This holds the [additional origins](#origins) your application may accept for attestation and assertion. You should use the `WEBAUTHN_ORIGINS` environment variable to change this value. 
 
 ### Challenge configuration
 

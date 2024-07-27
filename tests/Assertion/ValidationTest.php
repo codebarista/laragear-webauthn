@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Event;
 use Laragear\WebAuthn\Assertion\Validator\AssertionValidation;
 use Laragear\WebAuthn\Assertion\Validator\AssertionValidator;
 use Laragear\WebAuthn\Assertion\Validator\Pipes\CheckPublicKeyCounterCorrect;
+use Laragear\WebAuthn\Assertion\Validator\Pipes\CheckPublicKeySignature;
 use Laragear\WebAuthn\Assertion\Validator\Pipes\CheckUserInteraction;
 use Laragear\WebAuthn\Attestation\AuthenticatorData;
 use Laragear\WebAuthn\ByteBuffer;
@@ -23,7 +24,7 @@ use Laragear\WebAuthn\JsonTransport;
 use Laragear\WebAuthn\Models\WebAuthnCredential;
 use Mockery;
 use Ramsey\Uuid\Uuid;
-use Symfony\Component\HttpFoundation\ParameterBag;
+use Symfony\Component\HttpFoundation\InputBag;
 use Tests\DatabaseTestCase;
 use Tests\FakeAuthenticator;
 use Tests\Stubs\WebAuthnAuthenticatableUser;
@@ -101,7 +102,7 @@ class ValidationTest extends DatabaseTestCase
     {
         $request = Request::create('/');
         $request->headers->set('content-type', 'application/json');
-        $request->setJson(new ParameterBag([
+        $request->setJson(new InputBag([
             ...FakeAuthenticator::assertionResponse(),
             'foo' => 'bar',
             'clientExtensionResults' => 'baz',
@@ -419,7 +420,11 @@ class ValidationTest extends DatabaseTestCase
         $invalid = FakeAuthenticator::assertionResponse();
 
         $invalid['response']['clientDataJSON'] = base64_encode(
-            json_encode(['type' => 'invalid', 'origin' => '', 'challenge' => ''])
+            json_encode([
+                'type' => 'invalid',
+                'origin' => '',
+                'challenge' => '',
+            ])
         );
 
         $this->validation->json = new JsonTransport($invalid);
@@ -435,7 +440,11 @@ class ValidationTest extends DatabaseTestCase
         $invalid = FakeAuthenticator::assertionResponse();
 
         $invalid['response']['clientDataJSON'] = base64_encode(
-            json_encode(['type' => 'webauthn.get', 'origin' => 'https://localhost', 'challenge' => ''])
+            json_encode([
+                'type' => 'webauthn.get',
+                'origin' => 'https://localhost',
+                'challenge' => '',
+            ])
         );
 
         $this->validation->json = new JsonTransport($invalid);
@@ -451,7 +460,11 @@ class ValidationTest extends DatabaseTestCase
         $invalid = FakeAuthenticator::assertionResponse();
 
         $invalid['response']['clientDataJSON'] = base64_encode(
-            json_encode(['type' => 'webauthn.get', 'origin' => 'https://localhost', 'challenge' => 'invalid'])
+            json_encode([
+                'type' => 'webauthn.get',
+                'origin' => 'https://localhost',
+                'challenge' => 'invalid',
+            ])
         );
 
         $this->validation->json = new JsonTransport($invalid);
@@ -462,12 +475,86 @@ class ValidationTest extends DatabaseTestCase
         $this->validate();
     }
 
+    public function test_check_origin_matches_non_url(): void
+    {
+        $this->app->make('config')->set('webauthn.origins', ['foo', 'bar.baz']);
+
+        $invalid = FakeAuthenticator::assertionResponse();
+
+        $invalid['response']['clientDataJSON'] = base64_encode(
+            json_encode([
+                'type' => 'webauthn.get',
+                'origin' => 'foo',
+                'challenge' => FakeAuthenticator::ASSERTION_CHALLENGE,
+            ])
+        );
+
+        $this->validation->json = new JsonTransport($invalid);
+
+        // The signature will not match since it's tailored to the origin itself.
+        $this->mock(CheckPublicKeySignature::class, function (Mockery\MockInterface $mock): void {
+            $mock->expects('handle')->andReturnUsing(fn ($validation, $closure) => $closure($validation));
+        });
+
+        static::assertInstanceOf(AssertionValidation::class, $this->validate());
+    }
+
+    public function test_check_origin_matches_non_url_from_string(): void
+    {
+        $this->app->make('config')->set('webauthn.origins', 'foo,bar.baz');
+
+        $invalid = FakeAuthenticator::assertionResponse();
+
+        $invalid['response']['clientDataJSON'] = base64_encode(
+            json_encode([
+                'type' => 'webauthn.get',
+                'origin' => 'foo',
+                'challenge' => FakeAuthenticator::ASSERTION_CHALLENGE,
+            ])
+        );
+
+        $this->validation->json = new JsonTransport($invalid);
+
+        // The signature will not match since it's tailored to the origin itself.
+        $this->mock(CheckPublicKeySignature::class, function (Mockery\MockInterface $mock): void {
+            $mock->expects('handle')->andReturnUsing(fn ($validation, $closure) => $closure($validation));
+        });
+
+        static::assertInstanceOf(AssertionValidation::class, $this->validate());
+    }
+
+    public function test_check_origin_doesnt_match_subdomain_from_non_origin_url(): void
+    {
+        $this->app->make('config')->set('webauthn.origins', 'foo,bar.baz');
+
+        $invalid = FakeAuthenticator::assertionResponse();
+
+        $invalid['response']['clientDataJSON'] = base64_encode(
+            json_encode([
+                'type' => 'webauthn.get',
+                'origin' => 'bar.foo',
+                'challenge' => FakeAuthenticator::ASSERTION_CHALLENGE,
+            ])
+        );
+
+        $this->validation->json = new JsonTransport($invalid);
+
+        $this->expectException(AssertionException::class);
+        $this->expectExceptionMessage('Assertion Error: Response origin not allowed for this app.');
+
+        $this->validate();
+    }
+
     public function test_check_origin_fails_if_empty(): void
     {
         $invalid = FakeAuthenticator::assertionResponse();
 
         $invalid['response']['clientDataJSON'] = base64_encode(
-            json_encode(['type' => 'webauthn.get', 'origin' => '', 'challenge' => FakeAuthenticator::ASSERTION_CHALLENGE])
+            json_encode([
+                'type' => 'webauthn.get',
+                'origin' => '',
+                'challenge' => FakeAuthenticator::ASSERTION_CHALLENGE,
+            ])
         );
 
         $this->validation->json = new JsonTransport($invalid);
@@ -483,13 +570,17 @@ class ValidationTest extends DatabaseTestCase
         $invalid = FakeAuthenticator::assertionResponse();
 
         $invalid['response']['clientDataJSON'] = base64_encode(
-            json_encode(['type' => 'webauthn.get', 'origin' => 'invalid', 'challenge' => FakeAuthenticator::ASSERTION_CHALLENGE])
+            json_encode([
+                'type' => 'webauthn.get',
+                'origin' => 'invalid',
+                'challenge' => FakeAuthenticator::ASSERTION_CHALLENGE,
+            ])
         );
 
         $this->validation->json = new JsonTransport($invalid);
 
         $this->expectException(AssertionException::class);
-        $this->expectExceptionMessage('Assertion Error: Response origin is invalid.');
+        $this->expectExceptionMessage('Assertion Error: Response origin not allowed for this app.');
 
         $this->validate();
     }
@@ -500,13 +591,19 @@ class ValidationTest extends DatabaseTestCase
 
         /** @noinspection HttpUrlsUsage */
         $invalid['response']['clientDataJSON'] = base64_encode(
-            json_encode(['type' => 'webauthn.get', 'origin' => 'http://unsecure.com', 'challenge' => FakeAuthenticator::ASSERTION_CHALLENGE])
+            json_encode([
+                'type' => 'webauthn.get',
+                'origin' => 'http://unsecure.com',
+                'challenge' => FakeAuthenticator::ASSERTION_CHALLENGE,
+            ])
         );
 
         $this->validation->json = new JsonTransport($invalid);
 
         $this->expectException(AssertionException::class);
-        $this->expectExceptionMessage('Assertion Error: Response not made to a secure server (localhost or HTTPS).');
+        $this->expectExceptionMessage(
+            'Assertion Error: Response origin not made from a secure server (localhost or HTTPS).'
+        );
 
         $this->validate();
     }
@@ -546,7 +643,7 @@ class ValidationTest extends DatabaseTestCase
         $this->validation->json = new JsonTransport($invalid);
 
         $this->expectException(AssertionException::class);
-        $this->expectExceptionMessage('Assertion Error: Relying Party ID not scoped to current.');
+        $this->expectExceptionMessage('Assertion Error: Response origin not allowed for this app.');
 
         $this->validate();
     }
@@ -566,9 +663,31 @@ class ValidationTest extends DatabaseTestCase
         $this->validation->json = new JsonTransport($invalid);
 
         $this->expectException(AssertionException::class);
-        $this->expectExceptionMessage('Assertion Error: Relying Party ID not scoped to current.');
+        $this->expectExceptionMessage('Assertion Error: Response origin not allowed for this app.');
 
         $this->validate();
+    }
+
+    public function test_rp_id_passes_if_subdomain(): void
+    {
+        $invalid = FakeAuthenticator::assertionResponse();
+
+        $invalid['response']['clientDataJSON'] = base64_encode(
+            json_encode([
+                'type' => 'webauthn.get',
+                'origin' => 'http://valid.localhost:9780',
+                'challenge' => FakeAuthenticator::ASSERTION_CHALLENGE,
+            ])
+        );
+
+        $this->validation->json = new JsonTransport($invalid);
+
+        // The signature will not match since it's tailored to the origin itself.
+        $this->mock(CheckPublicKeySignature::class, function (Mockery\MockInterface $mock): void {
+            $mock->expects('handle')->andReturnUsing(fn ($validation, $closure) => $closure($validation));
+        });
+
+        static::assertInstanceOf(AssertionValidation::class, $this->validate());
     }
 
     public function test_rp_id_fails_if_hash_not_same(): void

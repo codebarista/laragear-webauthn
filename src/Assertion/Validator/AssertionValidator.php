@@ -23,7 +23,6 @@ class AssertionValidator extends Pipeline
         Pipes\CheckChallengeSame::class,
         Pipes\RetrievesCredentialId::class,
         Pipes\CheckCredentialIsForUser::class,
-        Pipes\CheckOriginSecure::class,
         Pipes\CheckRelyingPartyIdContained::class,
         Pipes\CheckRelyingPartyHashSame::class,
         Pipes\CheckUserInteraction::class,

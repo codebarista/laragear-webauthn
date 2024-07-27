@@ -20,6 +20,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Origins
+    |--------------------------------------------------------------------------
+    |
+    | By default, only your application domain is used as a valid origin for
+    | all ceremonies. If you are using your app as a backend for an app or
+    | UI you may set additional origins to check against the ceremonies.
+    |
+    | For multiple origins, separate them using comma, like `foo,bar`.
+    */
+
+    'origins' => env('WEBAUTHN_ORIGINS'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Challenge configuration
     |--------------------------------------------------------------------------
     |

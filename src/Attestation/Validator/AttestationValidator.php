@@ -24,7 +24,6 @@ class AttestationValidator extends Pipeline
         Pipes\AttestationIsForCreation::class,
         Pipes\RetrieveChallenge::class,
         Pipes\CheckChallengeSame::class,
-        Pipes\CheckOriginSecure::class,
         Pipes\CheckRelyingPartyIdContained::class,
         Pipes\CheckRelyingPartyHashSame::class,
         Pipes\CheckUserInteraction::class,

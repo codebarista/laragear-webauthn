@@ -23,6 +23,11 @@ class AddConfiguration
     {
         $assertion->json->set('timeout', $this->config->get('webauthn.challenge.timeout') * 1000);
 
+        // If the Relying Party has been set, we will also tell the authenticator about it.
+        if ($id = $this->config->get('webauthn.relying_party.id')) {
+            $assertion->json->set('rpId', $id);
+        }
+
         return $next($assertion);
     }
 }
