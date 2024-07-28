@@ -13,7 +13,7 @@ class AssertionCreation
     /**
      * Create a new Assertion Creation instance.
      *
-     * @param  \Illuminate\Database\Eloquent\Collection<\Laragear\WebAuthn\Models\WebAuthnCredential>|null  $acceptedCredentials
+     * @param  \Illuminate\Database\Eloquent\Collection<int, \Laragear\WebAuthn\Models\WebAuthnCredential>|null  $acceptedCredentials
      */
     public function __construct(
         public ?WebAuthnAuthenticatable $user = null,
