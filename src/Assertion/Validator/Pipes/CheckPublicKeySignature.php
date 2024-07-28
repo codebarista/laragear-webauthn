@@ -119,7 +119,7 @@ class CheckPublicKeySignature
     {
         if (! $publicKey = openssl_pkey_get_public($credential->public_key)) {
             throw AssertionException::make('Public key is invalid: '.openssl_error_string());
-        }https://
+        }
 
         if (openssl_verify($verifiable, $signature, $publicKey, OPENSSL_ALGO_SHA256) !== 1) {
             throw AssertionException::make('Signature is invalid: '.openssl_error_string());
