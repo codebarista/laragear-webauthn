@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Laragear\WebAuthn\Assertion\Creator\AssertionCreation;
 use Laragear\WebAuthn\Models\WebAuthnCredential;
-
 use function array_filter;
 
 class MayRetrieveCredentialsIdForUser
@@ -22,7 +21,7 @@ class MayRetrieveCredentialsIdForUser
             $assertion->acceptedCredentials = $assertion->user->webAuthnCredentials()->get(['id', 'transports']); // @phpstan-ignore-line
 
             if ($assertion->acceptedCredentials->isNotEmpty()) {
-                $assertion->json->set('allowCredentials', $this->parseCredentials($assertion->acceptedCredentials)); // @phpstan-ignore-line
+                $assertion->json->set('allowCredentials', $this->parseCredentials($assertion->acceptedCredentials));
             }
         }
 
@@ -34,7 +33,7 @@ class MayRetrieveCredentialsIdForUser
      *
      * @return \Illuminate\Support\Collection<int, array{id?: mixed, type: string, transports?: non-empty-array<int, string>}>
      */
-    protected function parseCredentials(EloquentCollection $credentials): Collection
+    protected function parseCredentials(EloquentCollection $credentials): Collection  // @phpstan-ignore-line
     {
         return $credentials->map(static function (WebAuthnCredential $credential): array {
             return array_filter([
