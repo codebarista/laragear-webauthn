@@ -222,10 +222,10 @@ The Webpass helper offers more flexibility than just adjusting the WebAuthn cere
 
 Attestation is the _ceremony_ to create WebAuthn Credentials. To create an Attestable Response that the user device can understand, use the `AttestationRequest::toCreate()` form request.
 
-For example, we can create our own `AttestationController` to create it.
+For example, we can create our own `WebAuthnRegisterController` to create it.
 
 ```php
-// app\Http\Controllers\WebAuthn\AttestationController.php
+// app\Http\Controllers\WebAuthn\WebAuthnRegisterController.php
 use Laragear\WebAuthn\Http\Requests\AttestationRequest;
 
 public function createChallenge(AttestationRequest $request)
@@ -237,7 +237,7 @@ public function createChallenge(AttestationRequest $request)
 The device will receive the "instructions" to make a key, and will respond with it. You can use the `AttestedRequest` form request and its `save()` method to persist the WebAuthn key if it is valid. The request will automatically return a Validation exception if something fails.
 
 ```php
-// app\Http\Controllers\WebAuthn\AttestationController.php
+// app\Http\Controllers\WebAuthn\WebAuthnRegisterController.php
 use Laragear\WebAuthn\Http\Requests\AttestedRequest;
 
 public function register(AttestedRequest $attestation)
@@ -251,7 +251,7 @@ public function register(AttestedRequest $attestation)
 You may pass an array, or a callback, to the `save()`, which will allow you to modify the underlying WebAuthn Eloquent Model before saving it. For example, we could add an alias for the key present in the Request data.
 
 ```php
-// app\Http\Controllers\WebAuthn\AttestationController.php
+// app\Http\Controllers\WebAuthn\WebAuthnRegisterController.php
 use Laragear\WebAuthn\Http\Requests\AttestedRequest;
 
 public function register(AttestedRequest $request)
@@ -278,7 +278,7 @@ By default, the authenticator decides how to verify user when creating a credent
 You can override this using `fastRegistration()` to only check for user presence if possible, or `secureRegistration()` to actively verify the User.
 
 ```php
-// app\Http\Controllers\WebAuthn\AttestationController.php
+// app\Http\Controllers\WebAuthn\WebAuthnRegisterController.php
 use Laragear\WebAuthn\Http\Requests\AttestationRequest;
 
 public function createChallenge(AttestationRequest $request)
@@ -294,7 +294,7 @@ This enables one click/tap login, without the need to specify the user credentia
 For this to work, the device has to save the "username id" inside itself. Some authenticators _may_ save it regardless, others may be not compatible. To make this mandatory when creating the WebAuthn Credential, use the `userless()` method of the `AttestationRequest` form request.
 
 ```php
-// app\Http\Controllers\WebAuthn\AttestationController.php
+// app\Http\Controllers\WebAuthn\WebAuthnRegisterController.php
 use Laragear\WebAuthn\Http\Requests\AttestationRequest;
 
 public function registerDevice(AttestationRequest $request)
@@ -313,7 +313,7 @@ By default, during Attestation, the device will be informed about the existing e
 You can enable multiple credentials per device using `allowDuplicates()`, which in turn will always return an empty list of credentials to exclude. This way the authenticator will _think_ there are no already stored credentials for your app, and create a new one.
 
 ```php
-// app\Http\Controllers\WebAuthn\AttestationController.php
+// app\Http\Controllers\WebAuthn\WebAuthnRegisterController.php
 use Laragear\WebAuthn\Http\Requests\AttestationRequest;
 
 public function registerDevice(AttestationRequest $request)
@@ -328,10 +328,10 @@ The Assertion procedure also follows a two-step procedure: the user will input i
 
 First, use the `AssertionRequest::toVerify()` form request. It will automatically create an assertion for the user that matches the credentials, or a blank one in case you're using [userless login](#userlessone-touchtypeless-login). Otherwise, you may set stricter validation rules to always ask for credentials.
 
-For example, we can use our own `AssertionController` to handle it.
+For example, we can use our own `WebAuthnLoginController` to handle it.
 
 ```php
-// app\Http\Controllers\WebAuthn\AssertionController.php
+// app\Http\Controllers\WebAuthn\WebAuthnLoginController.php
 use Laragear\WebAuthn\Http\Requests\AssertionRequest;
 
 public function createChallenge(AssertionRequest $request)
@@ -347,7 +347,7 @@ After that, you may receive the challenge using the `AssertedRequest` request ob
 Since the authentication is pretty much straightforward, you only need to check if the `login()` method returns the newly authenticated user or `null` when it fails. When it's a success, it will take care of [regenerating the session](https://laravel.com/docs/11.x/session#regenerating-the-session-id) for you.
 
 ```php
-// app\Http\Controllers\WebAuthn\AssertionController.php
+// app\Http\Controllers\WebAuthn\WebAuthnLoginController.php
 use Laragear\WebAuthn\Http\Requests\AssertedRequest;
 
 public function createChallenge(AssertedRequest $request)
@@ -369,7 +369,7 @@ In the same style of [attestation user verification](#attestation-user-verificat
 You may only require the user presence with `fastLogin()`, or actively verify the user with `secureLogin()`.
 
 ```php
-// app\Http\Controllers\WebAuthn\AssertionController.php
+// app\Http\Controllers\WebAuthn\WebAuthnLoginController.php
 use Laragear\WebAuthn\Http\Requests\AssertionRequest;
 
 public function createChallenge(AssertionRequest $request)
