@@ -33,9 +33,9 @@ class MayRetrieveCredentialsIdForUser
      *
      * @return \Illuminate\Support\Collection<int, array{id?: mixed, type: string, transports?: non-empty-array<int, string>}>
      */
-    protected function parseCredentials(EloquentCollection $credentials): Collection  // @phpstan-ignore-line
+    protected function parseCredentials(EloquentCollection $credentials): Collection
     {
-        return $credentials->map(static function (WebAuthnCredential $credential): array {
+        return $credentials->map(static function (WebAuthnCredential $credential): array {  // @phpstan-ignore-line
             return array_filter([
                 'id' => $credential->getKey(),
                 'type' => 'public-key',
