@@ -41,7 +41,12 @@ class WebAuthnAuthenticationMigration extends CustomizableMigration
         // On assertion, this will allow the authenticator where to look for the private key.
         $table->json('transports')->nullable();
         // The "type" or "properties" of the authenticator. Sometimes these are zeroes or null.
-        $table->uuid('aaguid')->nullable(); // GUID are essentially UUID
+
+        if ($this->connection === 'mariadb') {
+            $table->char('aaguid', 36)->nullable(); // Except for MariaDB
+        } else {
+            $table->uuid('aaguid')->nullable(); // GUID are essentially UUID
+        }
 
         // This is the public key the server will use to verify the challenges are corrected.
         $table->text('public_key');
